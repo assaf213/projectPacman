@@ -104,7 +104,12 @@ class engine(arcade.View):
             for col in row:
                 if(col == "."):
                     self.coin_list.append(Coin(x,y))
-
+                elif col == "#":
+                    self.wall_list.append(wall(x,y))
+                elif col == "G":
+                    self.ghost_list.append(Enemy(x,y))
+                elif col == "P":
+                    self.player_list.append(Player(x,y))
 
 
 
