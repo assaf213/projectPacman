@@ -103,7 +103,7 @@ class engine(arcade.View):
         for row in LEVEL_MAP:
             for col in row:
                 if(col == "."):
-                    self.coin_list.append(coin(x,y))
+                    self.coin_list.append(Coin(x,y))
 
 
 
