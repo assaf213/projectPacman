@@ -1,7 +1,39 @@
 import random
 import arcade
 
-TILE_SIZE =35
+"""
+מודול קבועים עבור משחק פקמן.
+
+מכיל:
+- הגדרות חלון (רוחב, גובה, כותרת)
+- גודל אריח בודד במפה
+- מפה לוגית (LEVEL_MAP) שמגדירה קירות, מטבעות, פקמן ורוחות.
+"""
+
+# הגדרות חלון
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+WINDOW_TITLE = "Pacman Arcade Example"
+
+# גודל אריח במפה (בפיקסלים)
+TILE_SIZE = 32
+
+# מפה:
+# # - קיר
+# . - מטבע
+# P - פקמן (נקודת התחלה לשחקן)
+# G - רוח
+LEVEL_MAP = [
+    "########################",
+    "#..........##..........#",
+    "#.####.###.##.###.####.#",
+    "#P....................G#",
+    "########################",
+]
+
+
+
+
 class Coin(arcade.Sprite):
     def __init__(self, x_center, y_center, value=10):
         super().__init__()
@@ -96,13 +128,14 @@ class engine(arcade.View):
         self.ghost_list = arcade.SpriteList()
         self.game_over = False
         self.player = None
+        rows = len(LEVEL_MAP)
         for row_idx,row in enumerate(LEVEL_MAP):
             for col_idx,cell in enumerate(row):
                 x = col_idx * TILE_SIZE/2
-                y = (row-row_idx) * TILE_SIZE + TILE_SIZE/2
+                y = (rows-row_idx) * TILE_SIZE + TILE_SIZE/2
         for row in LEVEL_MAP:
             for col in row:
-                if(col == "."):
+                if col == ".":
                     self.coin_list.append(Coin(x,y))
                 elif col == "#":
                     self.wall_list.append(wall(x,y))
@@ -113,10 +146,55 @@ class engine(arcade.View):
 
     def on_draw(self):
         self.clear()
-        self.wall_list.drew()
-        self.player_list.drew()
-        self.coin_list.drew()
-        self.ghost_list.drew()
+        self.wall_list.draw()
+        self.player_list.draw()
+        self.coin_list.draw()
+        self.ghost_list.draw()
+        rows = len(LEVEL_MAP)
+        arcade.draw_text(
+            f"{Player.score} \n {Player.lives}",
+            start_x=TILE_SIZE/2,
+            start_y=(rows-1) * TILE_SIZE/2,#צריך לבדוק איך לממצוא את הY האחרון
+            color=arcade.color.WHITE,
+            font_size=20,
+            anchor_x="center"
+        )
+
+        if self.game_over:
+            arcade.draw_text(
+                f"Game over!",
+                start_x=TILE_SIZE / 2,
+                start_y=(rows/2) * TILE_SIZE / 2,  # צריך לבדוק איך לממצוא את הY האחרון
+                color=arcade.color.RED,
+                font_size=20,
+                anchor_x="center"
+            )
+
+
+    def on_key_press(self, key, modifiers):
+        match key:
+            case arcade.key.UP:
+                self.player.x_change = 0
+                self.player.y_change = 1
+            case arcade.key.DOWN:
+                self.player.x_change = 0
+                self.player.y_change = -1
+            case arcade.key.LEFT:
+                self.player.x_change = -1
+                self.player.y_change = 0
+            case arcade.key.RIGHT:
+                self.player.x_change = 1
+                self.player.y_change = 0
+
+        if Player.lives == 0 and key == arcade.key.SPACE:
+            self.setup()
+
+    def on_key_release(self, key, modifiers):
+        ...
+
+
+
+
 
 
 
