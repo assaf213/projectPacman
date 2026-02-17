@@ -111,6 +111,18 @@ class engine(arcade.View):
                 elif col == "P":
                     self.player_list.append(Player(x,y))
 
+    def on_draw(self):
+        self.clear()
+        self.wall_list.drew()
+        self.player_list.drew()
+        self.coin_list.drew()
+        self.ghost_list.drew()
+
+
+
+
+
+
 
 
 
