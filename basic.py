@@ -31,7 +31,8 @@ LEVEL_MAP = [
     "########################",
 ]
 
-
+speed_enemy = 1
+speed_player = 1
 
 
 class Coin(arcade.Sprite):
@@ -47,11 +48,11 @@ class Coin(arcade.Sprite):
         self.height = texture.height - 15
 
 
-
-class Character:
+class Character(arcade.Sprite):
     def __init__(self, speed, x_center, y_center):
+        super().__init__()
         self.x_center = x_center
-        self.x_center = y_center
+        self.y_center = y_center
         self.speed = speed
         self.x_change = 0
         self.y_change = 0
@@ -76,7 +77,7 @@ class Player(Character):
 class Enemy(Character):
     def __init__(self, x_center, y_center, speed):
         super().__init__(x_center, y_center, speed)
-        self.time_to_change_direction = 0
+        self.time_to_change_direction = 0.0
         radius = TILE_SIZE // 2 - 2
         texture = arcade.make_circle_texture(radius * 2, arcade.color.BLUE)
         self.texture = texture
@@ -88,39 +89,43 @@ class Enemy(Character):
         rnd = random.choice(directions)
         self.x_change = rnd[0]
         self.y_change = rnd[1]
-        self.direction_change_to_time = random.next(0.3, 1.0)
+        self.time_to_change_direction = random.uniform(0.3, 1.0)
 
-    def update(self, time_delta=1 / 60):
-        self.direction_change_to_time -= time_delta
+    def update_ghost_direction(self, time_delta=1 / 60):
+        self.time_to_change_direction -= time_delta
 
-        if self.direction_change_to_time <= 0:
+        if self.time_to_change_direction <= 0:
             self.direction_new_pick()
 
         self.x_center += self.x_change * self.speed
         self.y_center += self.y_change * self.speed
 
 
-class wall():
+class Wall(arcade.Sprite):
     def __init__(self, center_x, center_y):
+        super().__init__(center_x, center_y)
         self.center_x = center_x
         self.center_y = center_y
         texture = arcade.make_soft_square_texture(TILE_SIZE, arcade.color.WHITE)
         self.texture = texture
         self.width = texture.width
         self.height = texture.height
-class engine(arcade.View):
+
+
+class PacmanGame(arcade.View):
     def __init__(self):
 
         super().__init__()
-        self.player_list=arcade.SpriteList()
+        self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
         self.coin_list = arcade.SpriteList()
         self.ghost_list = arcade.SpriteList()
         self.player = None
-        self.game_over=False
-        self.background_color=arcade.color.BLACK
-        self.start_x=0
-        self.start_y=0
+        self.game_over = False
+        self.background_color = arcade.color.BLACK
+        self.start_x = 0
+        self.start_y = 0
+
     def setup(self):
         self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
@@ -129,20 +134,19 @@ class engine(arcade.View):
         self.game_over = False
         self.player = None
         rows = len(LEVEL_MAP)
-        for row_idx,row in enumerate(LEVEL_MAP):
-            for col_idx,cell in enumerate(row):
-                x = col_idx * TILE_SIZE/2
-                y = (rows-row_idx) * TILE_SIZE + TILE_SIZE/2
-        for row in LEVEL_MAP:
-            for col in row:
-                if col == ".":
-                    self.coin_list.append(Coin(x,y))
-                elif col == "#":
-                    self.wall_list.append(wall(x,y))
-                elif col == "G":
-                    self.ghost_list.append(Enemy(x,y))
-                elif col == "P":
-                    self.player_list.append(Player(x,y))
+        for row_idx, row in enumerate(LEVEL_MAP):
+            for col_idx, cell in enumerate(row):
+                x = col_idx * TILE_SIZE / 2
+                y = (rows - row_idx) * TILE_SIZE + TILE_SIZE / 2
+                match cell:
+                    case ".":
+                        self.coin_list.append(Coin(x, y))
+                    case "#":
+                        self.wall_list.append(Wall(x, y))
+                    case "G":
+                        self.ghost_list.append(Enemy(x, y, speed_enemy))
+                    case "P":
+                        self.player_list.append(Player(x, y, speed_player))
 
     def on_draw(self):
         self.clear()
@@ -152,9 +156,9 @@ class engine(arcade.View):
         self.ghost_list.draw()
         rows = len(LEVEL_MAP)
         arcade.draw_text(
-            f"{Player.score} \n {Player.lives}",
-            start_x=TILE_SIZE/2,
-            start_y=(rows-1) * TILE_SIZE/2,#צריך לבדוק איך לממצוא את הY האחרון
+            f"{self.player.score} \n {self.player.lives}",
+            start_x=TILE_SIZE / 2,
+            start_y=(rows - 1) * TILE_SIZE / 2,
             color=arcade.color.WHITE,
             font_size=20,
             anchor_x="center"
@@ -164,12 +168,11 @@ class engine(arcade.View):
             arcade.draw_text(
                 f"Game over!",
                 start_x=TILE_SIZE / 2,
-                start_y=(rows/2) * TILE_SIZE / 2,  # צריך לבדוק איך לממצוא את הY האחרון
+                start_y=(rows / 2) * TILE_SIZE / 2,  # צריך לבדוק איך לממצוא את הY האחרון
                 color=arcade.color.RED,
                 font_size=20,
                 anchor_x="center"
             )
-
 
     def on_key_press(self, key, modifiers):
         match key:
@@ -186,26 +189,17 @@ class engine(arcade.View):
                 self.player.x_change = 1
                 self.player.y_change = 0
 
-        if Player.lives == 0 and key == arcade.key.SPACE:
+        if self.player.lives == 0 and key == arcade.key.SPACE:
             self.setup()
 
     def on_key_release(self, key, modifiers):
         ...
 
+    def on_update(self, delta_time):
+        ghost_BooM = arcade.check_for_collision_with_list(self.player_list[0], self.ghost_list)
+        if len(ghost_BooM) >= 1:
+            self.player.lives -= 1
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-window = arcade.Window(800,600,"check")
+window = arcade.Window(800, 600, "check")
 arcade.run()
