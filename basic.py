@@ -38,8 +38,8 @@ speed_player = 1
 class Coin(arcade.Sprite):
     def __init__(self, x_center, y_center, value=10):
         super().__init__()
-        self.x_center = x_center
-        self.y_center = y_center
+        self.center_x = x_center
+        self.center_y = y_center
         self.value = value
         radius = TILE_SIZE // 2 - 2
         texture = arcade.make_circle_texture(radius * 2, arcade.color.GOLD)
@@ -49,10 +49,10 @@ class Coin(arcade.Sprite):
 
 
 class Character(arcade.Sprite):
-    def __init__(self, speed, x_center, y_center):
+    def __init__(self, x_center, y_center, speed):
         super().__init__()
-        self.x_center = x_center
-        self.y_center = y_center
+        self.center_x = x_center
+        self.center_y = y_center
         self.speed = speed
         self.x_change = 0
         self.y_change = 0
@@ -70,8 +70,8 @@ class Player(Character):
         self.lives = 3
 
     def move(self, change_x, change_y):
-        self.x_center += change_x * self.speed
-        self.y_center += change_y * self.speed
+        self.center_x += change_x * self.speed
+        self.center_y += change_y * self.speed
 
 
 class Enemy(Character):
@@ -97,8 +97,8 @@ class Enemy(Character):
         if self.time_to_change_direction <= 0:
             self.direction_new_pick()
 
-        self.x_center += self.x_change * self.speed
-        self.y_center += self.y_change * self.speed
+        self.center_x += self.x_change * self.speed
+        self.center_y += self.y_change * self.speed
 
 
 class Wall(arcade.Sprite):
@@ -126,6 +126,7 @@ class PacmanGame(arcade.View):
         self.start_x = 0
         self.start_y = 0
 
+
     def setup(self):
         self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
@@ -136,8 +137,8 @@ class PacmanGame(arcade.View):
         rows = len(LEVEL_MAP)
         for row_idx, row in enumerate(LEVEL_MAP):
             for col_idx, cell in enumerate(row):
-                x = col_idx * TILE_SIZE / 2
-                y = (rows - row_idx) * TILE_SIZE + TILE_SIZE / 2
+                x = col_idx * TILE_SIZE + TILE_SIZE / 2
+                y = (rows - row_idx - 1) * TILE_SIZE + TILE_SIZE / 2
                 match cell:
                     case ".":
                         self.coin_list.append(Coin(x, y))
@@ -158,24 +159,27 @@ class PacmanGame(arcade.View):
         self.coin_list.draw()
         self.ghost_list.draw()
         rows = len(LEVEL_MAP)
-        arcade.draw_text(
+        info_text = arcade.Text(
             f"{self.player.score} \n {self.player.lives}",
-            start_x=TILE_SIZE / 2,
-            start_y=(rows - 1) * TILE_SIZE / 2,
+            x=TILE_SIZE / 2,
+            y=TILE_SIZE / 2,
             color=arcade.color.WHITE,
             font_size=20,
-            anchor_x="center"
+            anchor_x="center",
+            multiline=True,
+            width=200
         )
-
         if self.game_over:
-            arcade.draw_text(
-                f"Game over!",
-                start_x=TILE_SIZE / 2,
-                start_y=(rows / 2) * TILE_SIZE / 2,  # צריך לבדוק איך לממצוא את הY האחרון
+            game_over_text = arcade.Text(
+                "Game over!",
+                x=TILE_SIZE / 2,
+                y=(rows / 2) * TILE_SIZE / 2,
                 color=arcade.color.RED,
                 font_size=20,
                 anchor_x="center"
             )
+            game_over_text.draw()
+        info_text.draw()
 
     def on_key_press(self, key, modifiers):
         match key:
@@ -203,24 +207,22 @@ class PacmanGame(arcade.View):
     def on_update(self, delta_time):
         if self.game_over:
             return
-        save_center_y = self.player.y_center
-        save_center_x = self.player.x_center
+        save_center_y = self.player.center_y
+        save_center_x = self.player.center_x
         self.player.move(self.player.x_change, self.player.y_change)
         collision_P_with_W = arcade.check_for_collision_with_list(self.player,self.wall_list)
         if len(collision_P_with_W) != 0:
-            self.player.x_center = save_center_x
-            self.player.y_center = save_center_y
+            self.player.center_x = save_center_x
+            self.player.center_y = save_center_y
 
         for ghost in self.ghost_list:
-            save_ghost_y = ghost.y_center
-            save_ghost_x = ghost.x_center
+            save_ghost_y = ghost.center_y
+            save_ghost_x = ghost.center_x
             ghost.update_ghost_direction(delta_time)
             collision_G_with_W = arcade.check_for_collision_with_list(ghost, self.wall_list)
-            while len(collision_G_with_W) != 0:
-                ghost.x_center = save_center_x
-                ghost.y_center = save_center_y
-                ghost.update_ghost_direction(delta_time)
-                collision_G_with_W = arcade.check_for_collision_with_list(ghost, self.wall_list)
+            if len(collision_G_with_W) != 0:
+                ghost.center_x = save_ghost_x
+                ghost.center_y = save_ghost_y
 
         collision_P_with_C = arcade.check_for_collision_with_list(self.player, self.coin_list)
         if len(collision_P_with_C) != 0:
@@ -233,18 +235,18 @@ class PacmanGame(arcade.View):
         collision_P_with_G = arcade.check_for_collision_with_list(self.player, self.ghost_list)
         if len(collision_P_with_G) != 0:
             self.player.lives -= len(collision_P_with_G)
-            self.player.x_center = self.start_x
-            self.player.y_center = self.start_y
-            self.player.x_change = 0
-            self.player.y_change = 0
+            self.setup()
 
         if self.player.lives <= 0:
             self.game_over = True
 
 
 
-window = arcade.Window(800, 600, "PacMan")
-game = PacmanGame()
-game.setup()
-game.on_draw()
-arcade.run()
+def main():
+    window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
+    game = PacmanGame()
+    game.setup()
+    window.show_view(game)
+    arcade.run()
+
+main()
