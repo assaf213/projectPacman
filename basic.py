@@ -147,6 +147,9 @@ class PacmanGame(arcade.View):
                         self.ghost_list.append(Enemy(x, y, speed_enemy))
                     case "P":
                         self.player_list.append(Player(x, y, speed_player))
+                    case _:
+                        ...
+        self.player = self.player_list[0]
 
     def on_draw(self):
         self.clear()
@@ -188,6 +191,8 @@ class PacmanGame(arcade.View):
             case arcade.key.RIGHT:
                 self.player.x_change = 1
                 self.player.y_change = 0
+            case _:
+                ...
 
         if self.player.lives == 0 and key == arcade.key.SPACE:
             self.setup()
@@ -196,10 +201,50 @@ class PacmanGame(arcade.View):
         ...
 
     def on_update(self, delta_time):
-        ghost_BooM = arcade.check_for_collision_with_list(self.player_list[0], self.ghost_list)
-        if len(ghost_BooM) >= 1:
-            self.player.lives -= 1
+        if self.game_over:
+            return
+        save_center_y = self.player.y_center
+        save_center_x = self.player.x_center
+        self.player.move(self.player.x_change, self.player.y_change)
+        collision_P_with_W = arcade.check_for_collision_with_list(self.player,self.wall_list)
+        if len(collision_P_with_W) != 0:
+            self.player.x_center = save_center_x
+            self.player.y_center = save_center_y
+
+        for ghost in self.ghost_list:
+            save_ghost_y = ghost.y_center
+            save_ghost_x = ghost.x_center
+            ghost.update_ghost_direction(delta_time)
+            collision_G_with_W = arcade.check_for_collision_with_list(ghost, self.wall_list)
+            while len(collision_G_with_W) != 0:
+                ghost.x_center = save_center_x
+                ghost.y_center = save_center_y
+                ghost.update_ghost_direction(delta_time)
+                collision_G_with_W = arcade.check_for_collision_with_list(ghost, self.wall_list)
+
+        collision_P_with_C = arcade.check_for_collision_with_list(self.player, self.coin_list)
+        if len(collision_P_with_C) != 0:
+            for coin in collision_P_with_C:
+                self.coin_list.remove(coin)
+                self.player.score += 2
+        else:
+            self.player.score -= 0.01
+
+        collision_P_with_G = arcade.check_for_collision_with_list(self.player, self.ghost_list)
+        if len(collision_P_with_G) != 0:
+            self.player.lives -= len(collision_P_with_G)
+            self.player.x_center = self.start_x
+            self.player.y_center = self.start_y
+            self.player.x_change = 0
+            self.player.y_change = 0
+
+        if self.player.lives <= 0:
+            self.game_over = True
 
 
-window = arcade.Window(800, 600, "check")
+
+window = arcade.Window(800, 600, "PacMan")
+game = PacmanGame()
+game.setup()
+game.on_draw()
 arcade.run()
