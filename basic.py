@@ -122,20 +122,23 @@ class PacmanGame(arcade.View):
         self.ghost_list = arcade.SpriteList()
         self.player = None
         self.game_over = False
+        self.won = False
         self.background_color = arcade.color.BLACK
         self.start_x = 0
         self.start_y = 0
 
-
     def setup(self):
         lives = 3
+        score = 0
         if self.player != None:
             lives = self.player.lives
+            score = self.player.score
         self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
         self.coin_list = arcade.SpriteList()
         self.ghost_list = arcade.SpriteList()
         self.game_over = False
+        self.won = False
         self.player = None
         rows = len(LEVEL_MAP)
         for row_idx, row in enumerate(LEVEL_MAP):
@@ -155,6 +158,7 @@ class PacmanGame(arcade.View):
                         ...
         self.player = self.player_list[0]
         self.player.lives = lives
+        self.player.score = score
 
     def on_draw(self):
         self.clear()
@@ -162,7 +166,7 @@ class PacmanGame(arcade.View):
         self.player_list.draw()
         self.coin_list.draw()
         self.ghost_list.draw()
-        rows = len(LEVEL_MAP)
+
         info_text = arcade.Text(
             f"score: {self.player.score} \nlives: {self.player.lives}",
             x=120,
@@ -173,16 +177,29 @@ class PacmanGame(arcade.View):
             multiline=True,
             width=200
         )
+
         if self.game_over:
             game_over_text = arcade.Text(
                 "Game over!,loser",
-                x=(len(LEVEL_MAP[0])) * TILE_SIZE / 2,
-                y=(len(LEVEL_MAP) / 2) * TILE_SIZE / 2,
+                x=WINDOW_WIDTH / 2,
+                y=WINDOW_HEIGHT / 2,
                 color=arcade.color.RED,
                 font_size=50,
                 anchor_x="center"
             )
             game_over_text.draw()
+
+        if self.won:
+            win_text = arcade.Text(
+                "YOU WIN!",
+                x=WINDOW_WIDTH / 2,
+                y=WINDOW_HEIGHT / 2,
+                color=arcade.color.GREEN,
+                font_size=50,
+                anchor_x="center"
+            )
+            win_text.draw()
+
         info_text.draw()
 
     def on_key_press(self, key, modifiers):
@@ -202,19 +219,20 @@ class PacmanGame(arcade.View):
             case _:
                 ...
 
-        if self.player.lives == 0 and key == arcade.key.SPACE:
+        if (self.game_over or self.won) and key == arcade.key.SPACE:
             self.setup()
 
     def on_key_release(self, key, modifiers):
         ...
 
     def on_update(self, delta_time):
-        if self.game_over:
+        if self.game_over or self.won:
             return
+
         save_center_y = self.player.center_y
         save_center_x = self.player.center_x
         self.player.move(self.player.x_change, self.player.y_change)
-        collision_P_with_W = arcade.check_for_collision_with_list(self.player,self.wall_list)
+        collision_P_with_W = arcade.check_for_collision_with_list(self.player, self.wall_list)
         if len(collision_P_with_W) != 0:
             self.player.center_x = save_center_x
             self.player.center_y = save_center_y
@@ -234,15 +252,17 @@ class PacmanGame(arcade.View):
                 self.coin_list.remove(coin)
                 self.player.score += 10
 
+        if len(self.coin_list) == 0:
+            self.won = True
 
         collision_P_with_G = arcade.check_for_collision_with_list(self.player, self.ghost_list)
         if len(collision_P_with_G) != 0:
             self.player.lives -= len(collision_P_with_G)
-            self.setup()
+            if self.player.lives > 0:
+                self.setup()
 
         if self.player.lives <= 0:
             self.game_over = True
-
 
 
 def main():
@@ -251,5 +271,6 @@ def main():
     game.setup()
     window.show_view(game)
     arcade.run()
+
 
 main()
