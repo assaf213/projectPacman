@@ -128,6 +128,9 @@ class PacmanGame(arcade.View):
 
 
     def setup(self):
+        lives = 3
+        if self.player != None:
+            lives = self.player.lives
         self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
         self.coin_list = arcade.SpriteList()
@@ -151,6 +154,7 @@ class PacmanGame(arcade.View):
                     case _:
                         ...
         self.player = self.player_list[0]
+        self.player.lives = lives
 
     def on_draw(self):
         self.clear()
@@ -160,9 +164,9 @@ class PacmanGame(arcade.View):
         self.ghost_list.draw()
         rows = len(LEVEL_MAP)
         info_text = arcade.Text(
-            f"{self.player.score} \n {self.player.lives}",
-            x=TILE_SIZE / 2,
-            y=TILE_SIZE / 2,
+            f"score: {self.player.score} \nlives: {self.player.lives}",
+            x=120,
+            y=WINDOW_HEIGHT - 40,
             color=arcade.color.WHITE,
             font_size=20,
             anchor_x="center",
@@ -171,11 +175,11 @@ class PacmanGame(arcade.View):
         )
         if self.game_over:
             game_over_text = arcade.Text(
-                "Game over!",
-                x=TILE_SIZE / 2,
-                y=(rows / 2) * TILE_SIZE / 2,
+                "Game over!,loser",
+                x=(len(LEVEL_MAP[0])) * TILE_SIZE / 2,
+                y=(len(LEVEL_MAP) / 2) * TILE_SIZE / 2,
                 color=arcade.color.RED,
-                font_size=20,
+                font_size=50,
                 anchor_x="center"
             )
             game_over_text.draw()
@@ -228,9 +232,8 @@ class PacmanGame(arcade.View):
         if len(collision_P_with_C) != 0:
             for coin in collision_P_with_C:
                 self.coin_list.remove(coin)
-                self.player.score += 2
-        else:
-            self.player.score -= 0.01
+                self.player.score += 10
+
 
         collision_P_with_G = arcade.check_for_collision_with_list(self.player, self.ghost_list)
         if len(collision_P_with_G) != 0:
